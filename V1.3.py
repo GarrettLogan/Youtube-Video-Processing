@@ -65,21 +65,23 @@ class YouTubePlayer(tk.Tk):
         query = self.search_entry.get()
 
         if query:
-            videos_search = VideosSearch(query, limit=10)
+            videos_search = VideosSearch(query, limit=10)  # can have more but displays top 10 searched videos
             results = videos_search.result()['result']
 
-            # Clear previous results from the listbox
+            # Clear previous results from the listbox, this is used to ensure we dont add too many items as well as not mixing searches
             self.results_listbox.delete(0, tk.END)
 
-            # Populate listbox with search results
+            # Add items to listbox using search results
             for idx, result in enumerate(results, start=1):
                 self.results_listbox.insert(tk.END, f"{idx}. {result['title']}")
 
     def play_selected_video(self):
+        # Really cool line here, pretty much checking to see which selected option is in the listbox
         selected_index = self.results_listbox.curselection()
 
+        
         if selected_index:
-            index = int(selected_index[0])  # Converts to integer
+            index = int(selected_index[0])  # Converts to integer value, I am not familiar enough with this library to understand why my other method didnt work, this does though
             query = self.search_entry.get()
             videos_search = VideosSearch(query, limit=10)
             video_url = videos_search.result()['result'][index]['link']
@@ -89,6 +91,7 @@ class YouTubePlayer(tk.Tk):
 
     def download_video(self, video_url):
         try:
+            # This will set an object for the selected video and feed it into an function that will download and then activate the play locally function that will start the video
             yt = YouTube(video_url)
             video_stream = yt.streams.filter(progressive=True, file_extension="mp4").first()
             video_stream.download()
@@ -97,6 +100,8 @@ class YouTubePlayer(tk.Tk):
         except Exception as e:
             print(f"Error: {e}")
 
+    # This does not need to be here but for the sake of organization and future moveability I just made it a staticmethod in the class
+    # Grabs the downloaded file and plays it/ not neccessary but it helps to show that the download has finished
     @staticmethod
     def play_locally(file_path):
         try:
