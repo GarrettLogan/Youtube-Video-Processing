@@ -2,3 +2,5 @@ yt-dlp
 youtube-search-python
 pytube
 qtpy
+pyqt6
+pynput
