@@ -3,12 +3,55 @@ import os
 import threading
 import json
 import yt_dlp
-from qtpy.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton,
-    QListWidget, QListWidgetItem, QLabel, QFileDialog, QProgressBar, QStackedWidget,
-    QSpinBox, QComboBox
-)
-from qtpy.QtCore import Qt
+import importlib
+from pynput import keyboard
+
+# Dynamically import Qt bindings: prefer 'qtpy6',
+# fall back to 'qtpy'
+# the rest of the file can use them as if they were imported normally.
+def _load_qt_shim():
+    # Taken from QtCore direct import documentation
+    tried = []
+    for pkg in ("qtpy6", "qtpy", "PyQt6", "PySide6", "PyQt5", "PySide2"):
+        tried.append(pkg)
+        try:
+            widgets = importlib.import_module(f"{pkg}.QtWidgets")
+            core = importlib.import_module(f"{pkg}.QtCore")
+            names = [
+                "QApplication", "QWidget", "QVBoxLayout", "QHBoxLayout",
+                "QLineEdit", "QPushButton", "QListWidget", "QListWidgetItem",
+                "QLabel", "QFileDialog", "QProgressBar", "QStackedWidget",
+                "QSpinBox", "QComboBox"
+            ]
+            for n in names:
+                globals()[n] = getattr(widgets, n)
+            globals()["Qt"] = getattr(core, "Qt")
+            return pkg
+        except Exception:
+            continue
+    raise ImportError(
+        "Could not find a Qt binding. Tried: " + ", ".join(tried) +
+        ". Install a shim or a Qt package: e.g. `pip install qtpy pyqt6` or `pip install pyside6 qtpy`."
+    )
+
+try:
+    QT_SHIM = _load_qt_shim()
+    print(f"Using Qt shim: {QT_SHIM}")
+except ImportError as e:
+    # Friendly message for users running the script without Qt installed
+    msg = (
+        str(e) + "\n\n"
+        "To run the GUI you need a Qt binding. On Windows PowerShell you can install one of these combos:\n"
+        "  pip install qtpy pyqt6\n"
+        "  pip install qtpy pyside6\n"
+        "Or install a direct binding:\n"
+        "  pip install pyqt6\n"
+        "  pip install pyside6\n\n"
+        "After installing, re-run this script. Exiting now."
+    )
+    print(msg)
+    # Exit cleanly without a full traceback
+    sys.exit(1)
 
 SETTINGS_FILE = "yt_downloader_settings.json"
 
@@ -16,7 +59,7 @@ class YouTubeDownloader(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("YouTube Downloader")
-        self.resize(900, 600)
+        self.resize(1200, 600)
 
         # --- Load settings ---
         self.load_settings()
@@ -70,6 +113,7 @@ class YouTubeDownloader(QWidget):
         self.search_button = QPushButton("Search")
         self.search_button.setStyleSheet("background-color: #5865F2; color: white; border-radius: 6px; padding: 6px;")
         self.search_button.clicked.connect(self.search_videos)
+
 
         search_controls = QHBoxLayout()
         search_controls.addWidget(self.search_bar)
@@ -279,4 +323,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = YouTubeDownloader()
     win.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
